@@ -5,8 +5,8 @@ require("dotenv").config();
 const port = 3000;
 
 const app = express();
-
 app.use(cors());
+app.use(express.json());
 
 const uri =
   "mongodb+srv://HabitTracker:xnYQBDrTuiGna1l6@taftech.rxdwt12.mongodb.net/?appName=Taftech";
@@ -23,6 +23,14 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
+
+    // post request
+    app.post("/addHabit", async (req, res) => {
+        const habitData = req.body;
+
+        console.log(habitData);
+    })
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
