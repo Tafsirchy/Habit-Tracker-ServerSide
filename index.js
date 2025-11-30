@@ -24,12 +24,17 @@ async function run() {
   try {
     await client.connect();
 
+    // create database
+    const database = client.db("HabitTracker");
+    const habitCollection = database.collection("habits");
+
     // post request
     app.post("/addHabit", async (req, res) => {
-        const habitData = req.body;
-
-        console.log(habitData);
-    })
+      const habitData = req.body;
+      console.log(habitData);
+      const result = await habitCollection.insertOne(habitData);
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -42,11 +47,10 @@ async function run() {
 }
 run().catch(console.dir);
 
+app.get("/", (req, res) => {
+  res.send("Hello World");
+});
 
-app.get("/", (req, res)=>{
-    res.send("Hello World")
-})
-
-app.listen(port, ()=> {
-    console.log(`server is running on ${port}`);
-})
+app.listen(port, () => {
+  console.log(`server is running on ${port}`);
+});
