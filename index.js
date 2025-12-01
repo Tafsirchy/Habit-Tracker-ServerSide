@@ -1,11 +1,11 @@
-const { MongoClient, ServerApiVersion } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
+const app = express();
 const port = 3000;
 
-const app = express();
 app.use(cors());
 app.use(express.json());
 
@@ -23,51 +23,99 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
+    console.log("MongoDB Connected ✔");
 
     const database = client.db("HabitTracker");
     const habitCollection = database.collection("habits");
 
-    // ---------------------------------------------------
-    // POST: ADD NEW HABIT (with timestamp)
-    // ---------------------------------------------------
+    // CREATE HABIT
     app.post("/habits", async (req, res) => {
       const habitData = req.body;
 
-      // Add createdAt timestamp
       habitData.createdAt = new Date();
+      habitData.completionHistory = [];
+      habitData.daysCompleted = 0;
+      habitData.currentStreak = 0;
 
       const result = await habitCollection.insertOne(habitData);
       res.send(result);
     });
 
-    // ---------------------------------------------------
-    // GET: Fetch habits sorted by newest first
-    // limit: 6 items only
-    // ---------------------------------------------------
+    // GET LATEST HABITS
     app.get("/habits", async (req, res) => {
-      const result = await habitCollection
+      const habits = await habitCollection
         .find()
-        .sort({ createdAt: -1 }) // NEWEST → OLDEST
-        .limit(6) // only 6 latest habits
+        .sort({ createdAt: -1 })
+        .limit(6)
         .toArray();
 
-      res.send(result);
+      res.send(habits);
     });
 
-    console.log("Connected to MongoDB");
+    // GET HABIT BY ID
+    app.get("/habits/:id", async (req, res) => {
+      const id = req.params.id;
+
+      if (!ObjectId.isValid(id))
+        return res.status(400).json({ error: "Invalid ID" });
+
+      const habit = await habitCollection.findOne({ _id: new ObjectId(id) });
+      if (!habit) return res.status(404).json({ error: "Habit not found" });
+
+      res.json(habit);
+    });
+
+    // MARK COMPLETE
+    app.patch("/habits/:id/complete", async (req, res) => {
+      const id = req.params.id;
+
+      if (!ObjectId.isValid(id))
+        return res.status(400).json({ error: "Invalid ID" });
+
+      const habit = await habitCollection.findOne({ _id: new ObjectId(id) });
+      if (!habit) return res.status(404).json({ error: "Habit not found" });
+
+      const today = new Date().toISOString().split("T")[0];
+      let history = habit.completionHistory || [];
+
+      if (history.includes(today)) {
+        return res.send({ message: "Already completed today", habit });
+      }
+
+      history.push(today);
+      history.sort((a, b) => new Date(b) - new Date(a));
+
+      // Calculate streak
+      let streak = 1;
+      for (let i = 1; i < history.length; i++) {
+        const prev = new Date(history[i - 1]);
+        const curr = new Date(history[i]);
+        const diff = (prev - curr) / (1000 * 60 * 60 * 24);
+
+        if (diff === 1) streak++;
+        else break;
+      }
+
+      const updated = await habitCollection.findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            completionHistory: history,
+            currentStreak: streak,
+            daysCompleted: history.length,
+          },
+        },
+        { returnDocument: "after" }
+      );
+
+      res.send(updated.value);
+    });
   } finally {
-    // keeping connection open
   }
 }
 
 run().catch(console.dir);
 
-// ROOT
-app.get("/", (req, res) => {
-  res.send("Hello World");
-});
+app.get("/", (req, res) => res.send("Habit Tracker API running 🚀"));
 
-// START SERVER
-app.listen(port, () => {
-  console.log(`server is running on port ${port}`);
-});
+app.listen(port, () => console.log(`Server running on port ${port}`));
