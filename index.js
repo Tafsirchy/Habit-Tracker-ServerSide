@@ -2,6 +2,7 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+
 const port = 3000;
 
 const app = express();
@@ -11,7 +12,6 @@ app.use(express.json());
 const uri =
   "mongodb+srv://HabitTracker:xnYQBDrTuiGna1l6@taftech.rxdwt12.mongodb.net/?appName=Taftech";
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -24,33 +24,50 @@ async function run() {
   try {
     await client.connect();
 
-    // create database
     const database = client.db("HabitTracker");
     const habitCollection = database.collection("habits");
 
-    // post request
-    app.post("/addHabit", async (req, res) => {
+    // ---------------------------------------------------
+    // POST: ADD NEW HABIT (with timestamp)
+    // ---------------------------------------------------
+    app.post("/habits", async (req, res) => {
       const habitData = req.body;
-      console.log(habitData);
+
+      // Add createdAt timestamp
+      habitData.createdAt = new Date();
+
       const result = await habitCollection.insertOne(habitData);
       res.send(result);
     });
 
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // ---------------------------------------------------
+    // GET: Fetch habits sorted by newest first
+    // limit: 6 items only
+    // ---------------------------------------------------
+    app.get("/habits", async (req, res) => {
+      const result = await habitCollection
+        .find()
+        .sort({ createdAt: -1 }) // NEWEST → OLDEST
+        .limit(6) // only 6 latest habits
+        .toArray();
+
+      res.send(result);
+    });
+
+    console.log("Connected to MongoDB");
   } finally {
-    // will remove this later
-    // await client.close();
+    // keeping connection open
   }
 }
+
 run().catch(console.dir);
 
+// ROOT
 app.get("/", (req, res) => {
   res.send("Hello World");
 });
 
+// START SERVER
 app.listen(port, () => {
-  console.log(`server is running on ${port}`);
+  console.log(`server is running on port ${port}`);
 });
