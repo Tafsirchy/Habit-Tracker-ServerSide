@@ -65,6 +65,44 @@ async function run() {
       res.json(habit);
     });
 
+    app.get("/my-habits", async(req, res) => {
+      const {email} = req.query;
+
+      const query = { email: email };
+      const result = await habitCollection.find(query).toArray();
+
+      res.send(result);
+    })
+
+    // browse habits
+    // app.get("/habits", async (req, res) => {
+    //   try {
+    //     const habits = await habitCollection
+    //       .find({})
+    //       .sort({ createdAt: -1 })
+    //       .toArray();
+
+    //     const clean = habits.map((habit) => ({
+    //       ...habit,
+    //       _id: habit._id.toString(),
+    //       createdAt:
+    //         habit.createdAt instanceof Date
+    //           ? habit.createdAt
+    //           : new Date(
+    //               Number(habit.createdAt?.$date?.$numberLong) || Date.now()
+    //             ),
+    //       currentStreak: Number(habit.currentStreak) || 0,
+    //       daysCompleted: Number(habit.daysCompleted) || 0,
+    //     }));
+
+    //     res.json(clean);
+    //   } catch (error) {
+    //     console.error("PUBLIC HABIT ERROR:", error);
+    //     res.status(500).json({ error: "Internal server error" });
+    //   }
+    // });
+
+
     // MARK COMPLETE
     app.patch("/habits/:id/complete", async (req, res) => {
       const id = req.params.id;
