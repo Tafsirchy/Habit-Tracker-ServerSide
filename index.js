@@ -65,14 +65,29 @@ async function run() {
       res.json(habit);
     });
 
-    app.get("/my-habits", async(req, res) => {
-      const {email} = req.query;
+    app.get("/my-habits", async (req, res) => {
+      const { email } = req.query;
 
       const query = { email: email };
       const result = await habitCollection.find(query).toArray();
 
       res.send(result);
-    })
+    });
+
+    app.put("/update/:id", async (req, res) => {
+      const data = req.body;
+      const id = req.params;
+      const query = { _id: new ObjectId(id) };
+
+      const updateHabits = {
+        $set: data,
+      };
+
+      const result = await habitCollection.updateOne(query, updateHabits);
+      res.send(result);
+
+      
+    });
 
     // browse habits
     // app.get("/habits", async (req, res) => {
@@ -101,7 +116,6 @@ async function run() {
     //     res.status(500).json({ error: "Internal server error" });
     //   }
     // });
-
 
     // MARK COMPLETE
     app.patch("/habits/:id/complete", async (req, res) => {
