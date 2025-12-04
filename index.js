@@ -45,27 +45,35 @@ async function run() {
     });
 
     // GET LATEST HABITS
-   app.get("/habits", async (req, res) => {
-     const { category, search } = req.query;
+    app.get("/habits", async (req, res) => {
+      const { category, search } = req.query;
 
-     const query = {};
+      const query = {};
 
-    
+      // CATEGORY filter
+      if (category && category.trim() !== "") {
+        query.category = { $regex: new RegExp(`^${category}$`, "i") };
+      }
 
-     try {
-       const habits = await habitCollection
-         .find(query)
-         .sort({ createdAt: -1 })
-         .toArray();
+      // SEARCH filter
+      if (search && search.trim() !== "") {
+        query.$or = [
+          { title: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } },
+        ];
+      }
 
-       res.send(habits);
-     } catch (error) {
-       res.status(500).send({ error: "Server error" });
-     }
-   });
+      try {
+        const habits = await habitCollection
+          .find(query)
+          .sort({ createdAt: -1 })
+          .toArray();
 
-
-
+        res.send(habits);
+      } catch (error) {
+        res.status(500).send({ error: "Server error" });
+      }
+    });
 
     // GET HABIT BY ID
     app.get("/habits/:id", async (req, res) => {
@@ -163,8 +171,6 @@ async function run() {
 
       res.json(updatedHabit); // ALWAYS return updated habit
     });
-
-    
   } finally {
   }
 }
