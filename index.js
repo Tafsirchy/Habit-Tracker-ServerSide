@@ -32,6 +32,9 @@ async function run() {
     app.post("/habits", async (req, res) => {
       const habitData = req.body;
 
+      // 🔥 Normalize category
+      habitData.category = habitData.category?.trim().toLowerCase();
+
       habitData.createdAt = new Date();
       habitData.completionHistory = [];
       habitData.daysCompleted = 0;
@@ -42,15 +45,27 @@ async function run() {
     });
 
     // GET LATEST HABITS
-    app.get("/habits", async (req, res) => {
-      const habits = await habitCollection
-        .find()
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .toArray();
+   app.get("/habits", async (req, res) => {
+     const { category, search } = req.query;
 
-      res.send(habits);
-    });
+     const query = {};
+
+    
+
+     try {
+       const habits = await habitCollection
+         .find(query)
+         .sort({ createdAt: -1 })
+         .toArray();
+
+       res.send(habits);
+     } catch (error) {
+       res.status(500).send({ error: "Server error" });
+     }
+   });
+
+
+
 
     // GET HABIT BY ID
     app.get("/habits/:id", async (req, res) => {
@@ -65,6 +80,7 @@ async function run() {
       res.json(habit);
     });
 
+    //get habits by email
     app.get("/my-habits", async (req, res) => {
       const { email } = req.query;
 
@@ -74,67 +90,52 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/update/:id", async (req, res) => {
+    // update habit
+    app.put("/habits/:id", async (req, res) => {
       const data = req.body;
-      const id = req.params;
+      console.log(data);
+
+      const id = req.params.id;
       const query = { _id: new ObjectId(id) };
 
-      const updateHabits = {
-        $set: data,
-      };
-
+      const updateHabits = { $set: data };
       const result = await habitCollection.updateOne(query, updateHabits);
+      console.log(result);
       res.send(result);
-
-      
     });
 
-    // browse habits
-    // app.get("/habits", async (req, res) => {
-    //   try {
-    //     const habits = await habitCollection
-    //       .find({})
-    //       .sort({ createdAt: -1 })
-    //       .toArray();
+    // delete habit
+    app.delete("/delete/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
 
-    //     const clean = habits.map((habit) => ({
-    //       ...habit,
-    //       _id: habit._id.toString(),
-    //       createdAt:
-    //         habit.createdAt instanceof Date
-    //           ? habit.createdAt
-    //           : new Date(
-    //               Number(habit.createdAt?.$date?.$numberLong) || Date.now()
-    //             ),
-    //       currentStreak: Number(habit.currentStreak) || 0,
-    //       daysCompleted: Number(habit.daysCompleted) || 0,
-    //     }));
+      const result = await habitCollection.deleteOne(query);
+      res.send(result);
+    });
 
-    //     res.json(clean);
-    //   } catch (error) {
-    //     console.error("PUBLIC HABIT ERROR:", error);
-    //     res.status(500).json({ error: "Internal server error" });
-    //   }
-    // });
-
-    // MARK COMPLETE
+    // mark complete
     app.patch("/habits/:id/complete", async (req, res) => {
       const id = req.params.id;
 
-      if (!ObjectId.isValid(id))
+      if (!ObjectId.isValid(id)) {
         return res.status(400).json({ error: "Invalid ID" });
+      }
 
       const habit = await habitCollection.findOne({ _id: new ObjectId(id) });
       if (!habit) return res.status(404).json({ error: "Habit not found" });
 
       const today = new Date().toISOString().split("T")[0];
+
       let history = habit.completionHistory || [];
 
       if (history.includes(today)) {
-        return res.send({ message: "Already completed today", habit });
+        return res.json({ ...habit, alreadyCompleted: true });
       }
 
+      // Add today's entry
       history.push(today);
+
+      // Sort newest → oldest
       history.sort((a, b) => new Date(b) - new Date(a));
 
       // Calculate streak
@@ -148,20 +149,22 @@ async function run() {
         else break;
       }
 
-      const updated = await habitCollection.findOneAndUpdate(
+      const updatedHabit = {
+        ...habit,
+        completionHistory: history,
+        currentStreak: streak,
+        daysCompleted: history.length,
+      };
+
+      await habitCollection.updateOne(
         { _id: new ObjectId(id) },
-        {
-          $set: {
-            completionHistory: history,
-            currentStreak: streak,
-            daysCompleted: history.length,
-          },
-        },
-        { returnDocument: "after" }
+        { $set: updatedHabit }
       );
 
-      res.send(updated.value);
+      res.json(updatedHabit); // ALWAYS return updated habit
     });
+
+    
   } finally {
   }
 }
