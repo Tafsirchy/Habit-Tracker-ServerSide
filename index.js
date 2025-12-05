@@ -66,15 +66,12 @@ async function run() {
     // get habit for search and category
     app.get("/public-habits", async (req, res) => {
       const { category, search } = req.query;
-
       const query = {};
 
-      // CATEGORY filter
       if (category && category.trim() !== "") {
         query.category = { $regex: new RegExp(`^${category}$`, "i") };
       }
 
-      // SEARCH filter
       if (search && search.trim() !== "") {
         query.$or = [
           { title: { $regex: search, $options: "i" } },
@@ -93,6 +90,7 @@ async function run() {
         res.status(500).send({ error: "Server error" });
       }
     });
+
 
     
 
