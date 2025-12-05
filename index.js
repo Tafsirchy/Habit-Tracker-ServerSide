@@ -46,6 +46,25 @@ async function run() {
 
     // GET LATEST HABITS
     app.get("/habits", async (req, res) => {
+      try {
+        const query = {}; // required so .find(query) works
+
+        const habits = await habitCollection
+          .find(query)
+          .sort({ createdAt: -1 })
+          .limit(6) // <-- LIMIT HERE
+          .toArray();
+
+        res.send(habits);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send("Server error");
+      }
+    });
+
+
+    // get habit for search and category
+    app.get("/public-habits", async (req, res) => {
       const { category, search } = req.query;
 
       const query = {};
@@ -74,6 +93,8 @@ async function run() {
         res.status(500).send({ error: "Server error" });
       }
     });
+
+    
 
     // GET HABIT BY ID
     app.get("/habits/:id", async (req, res) => {
