@@ -28,11 +28,11 @@ async function run() {
     const database = client.db("HabitTracker");
     const habitCollection = database.collection("habits");
 
-    // CREATE HABIT
+    // create habit
     app.post("/habits", async (req, res) => {
       const habitData = req.body;
 
-      // 🔥 Normalize category
+      // normalize data
       habitData.category = habitData.category?.trim().toLowerCase();
 
       habitData.createdAt = new Date();
@@ -44,15 +44,15 @@ async function run() {
       res.send(result);
     });
 
-    // GET LATEST HABITS
+    // get latest habit for home
     app.get("/habits", async (req, res) => {
       try {
-        const query = {}; // required so .find(query) works
+        const query = {};
 
         const habits = await habitCollection
           .find(query)
           .sort({ createdAt: -1 })
-          .limit(6) // <-- LIMIT HERE
+          .limit(6)
           .toArray();
 
         res.send(habits);
@@ -61,7 +61,6 @@ async function run() {
         res.status(500).send("Server error");
       }
     });
-
 
     // get habit for search and category
     app.get("/public-habits", async (req, res) => {
@@ -91,10 +90,7 @@ async function run() {
       }
     });
 
-
-    
-
-    // GET HABIT BY ID
+    // get habit by id
     app.get("/habits/:id", async (req, res) => {
       const id = req.params.id;
 
@@ -159,13 +155,12 @@ async function run() {
         return res.json({ ...habit, alreadyCompleted: true });
       }
 
-      // Add today's entry
+      // push todays history
       history.push(today);
 
-      // Sort newest → oldest
       history.sort((a, b) => new Date(b) - new Date(a));
 
-      // Calculate streak
+      // streak count
       let streak = 1;
       for (let i = 1; i < history.length; i++) {
         const prev = new Date(history[i - 1]);
@@ -188,7 +183,7 @@ async function run() {
         { $set: updatedHabit }
       );
 
-      res.json(updatedHabit); // ALWAYS return updated habit
+      res.json(updatedHabit);
     });
   } finally {
   }
