@@ -9,8 +9,7 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
-const uri =
-  "mongodb+srv://HabitTracker:xnYQBDrTuiGna1l6@taftech.rxdwt12.mongodb.net/?appName=Taftech";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@taftech.rxdwt12.mongodb.net/?appName=Taftech`;
 
 const client = new MongoClient(uri, {
   serverApi: {
