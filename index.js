@@ -116,14 +116,12 @@ async function run() {
     // update habit
     app.put("/habits/:id", async (req, res) => {
       const data = req.body;
-      console.log(data);
 
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
 
       const updateHabits = { $set: data };
       const result = await habitCollection.updateOne(query, updateHabits);
-      console.log(result);
       res.send(result);
     });
 
@@ -191,6 +189,6 @@ async function run() {
 
 run().catch(console.dir);
 
-app.get("/", (req, res) => res.send("Habit Tracker API running 🚀"));
+app.get("/", (req, res) => res.send("Habit Tracker Runnig 🚀"));
 
 app.listen(port, () => console.log(`Server running on port ${port}`));
