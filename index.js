@@ -22,7 +22,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     console.log("MongoDB Connected ✔");
 
     const database = client.db("HabitTracker");
@@ -183,7 +183,12 @@ async function run() {
 
       res.json(updatedHabit);
     });
+
+    // await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment You are Successfully Connected to MongoDB!");
+
   } finally {
+    // await client.close();
   }
 }
 
